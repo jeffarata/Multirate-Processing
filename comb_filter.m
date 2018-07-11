@@ -5,6 +5,15 @@ function [ y ] = comb_filter( x , R )
 % This function implements a comb filter for use in interpolation where the
 % filter coefficients are all 0 except the first and last being 1 and -1
 % respectively. The number of coefficients is R+1
+%
+% Input:
+% 
+% x -       the input signal
+% R -       the rate of conversion to determine number of coefficients
+% 
+% Output:
+% 
+% y -       the filtered output signal
 
 b = zeros(1, 2*R);
 b(1) = 1;
