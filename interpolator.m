@@ -1,29 +1,46 @@
 % Jeff Arata
 % 1/17/18
 
-function [ y ] = interpolator( x, R )
+function [ y ] = interpolator( x, R, F, filter_flag )
 % This function interpolates a signal by upsampling by a rate of L and then
 % filtering the upsampled signal with a lowpass filter.
 %
 % Inputs:
 % 
-% x -       the input signal
-% R -       the interpolating/upsampling factor
+% x -           the input signal
+% R -           the interpolating/upsampling factor 
 % N -           the number of stages for the CIC filter; defaults to 2 
+% filter_flag - filters the signal if equal to 1
 %
 % Outputs:
 %
 % y -       the interpolated signal
 
-if nargin < 3                   % Default number of stages to 2
-   N = 2; 
+if nargin < 3
+    F = 3;
+end
+if nargin < 4
+    filter_flag = 0;
 end
 
+y = x;
 % CIC Filtering Method of Interpolation
-
-y = upsampler(x, R);
-y = CIC_filter(y, R, N);
-y = y/(R^(N-1));
+y = upsampler(y, R);                % Add more samples
+     
+if ~filter_flag
+    if F == 0
+    else
+        y = interp_filter_amp(y, R, F); % Filter and adjust amplitude   
+    end
+else
+    if F > 2
+        F = 2;
+        y = interp_filter_amp(y, R, F); % Filter and adjust amplitude
+    elseif (F == 2) || (F == 1)
+        y = interp_filter_amp(y, R, F); % Filter and adjust amplitude
+    else
+    end
+end
 
 
 % Interpolation via zero phase stuffing in frequency domain and then using
@@ -46,5 +63,5 @@ Q = 50;                     % Use 25 samples for lagrange coeffs
 b = lagrange_coeff(Q, R);
 y = filter(b, 1, y);
 %}
-
+    
 end
