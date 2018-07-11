@@ -2,35 +2,6 @@
 % 3/13/18
 
 
-% CURRENTLY HAVE NUMERICAL INSTABILITY BY FILTERING IN THE DECIMATION
-% FUNCTION, NO STABILITY OCCURED WHEN FILTERING OCCURRED IN BOTH
-% INTERPOLATION AND DECIMATION FUNCTIONS. Maybe it's the case that at least
-% one filtering must occur in the interpolation function. Test this out
-
-% fix this by:
-% always filtering at least 1 time in interpolator
-% filter everytime in interpolator if R>M
-% filter everytime but first time in decimator if R<M
-% Add on ability to do multiple filtering even if there aren't that many
-% factors to break conversion into, i.e. filtering 3 or more times with a rate
-% conversion of 2 (independant number of filters from number of rate stages)
-
-
-
-
-% Another idea to try would be to go for implementing the interpolation and
-% decimation in stages by doing it in prime factors of the desired values
-% to see if that takes care of it. This may require filtering with each
-% interp/decimation by a prime factor. Not sure though, will have to look
-% into this.
-
-% Try staging by making a function called 'rate_stager' that utilizes the
-% prime_factor function to find 3 factors of the interp/decimation rates (3
-% is very efficient) from lowest to highest. Give it the option to be the
-% users choice of stages, but default to 3. Then use this in the
-% interp/decimation functions themselves to implement the staged
-% interpolation/decimation
-
 % What if you gave the rate_converter function the option to put in the starting sampling
 % rate and ending sampling rate instead of the interpolation and decimation
 % rates. You would just have to calculate these rates from the input
@@ -107,11 +78,16 @@ if ~isempty(filter_flag)    % Does nothing if there is no rate conversion
         [sf_dec, N_dec] = rate_stager(M, N_int);
     end
     
-    %filter_flag = sf_int > sf_dec;     Use this to switch where filtering
-    %happens with each stage
-    for ii = 1:N_int    
-        y = interpolator(y, sf_int(ii), F, filter_flag);
-        y = decimator(y, sf_dec(ii), F, filter_flag);
+    % Determines where filtering should occur at each stage. If one stage
+    % has the same interpolation and decimation rate, then no filtering or 
+    % up/downsampling will occur at that stage, for efficiency. 
+    for ii = 1:N_int           
+        if (sf_int(ii) ~= sf_dec(ii))        
+            stage_filter_flag = sf_int(ii) > sf_dec(ii);
+            y = interpolator(y, sf_int(ii), F, stage_filter_flag);
+            y = decimator(y, sf_dec(ii), F, stage_filter_flag);
+        else
+        end
     end
 end
 end
@@ -169,8 +145,8 @@ function [ y ] = interp_filter_amp( x, R, F)
 % 
 % y -       the filtered and scaled output signal
 
-y = CIC_filter(x, R, F);        % Filter atleast twice in interpolator
-y = y/(R^(F-1));
+y = CIC_filter(x, R, F);        % Filter F times
+y = y/(R^(F-1));                % Adjust amplitude of signal
 
 end
 
@@ -191,12 +167,33 @@ function [ y ] = decimator( x, M, F, filter_flag )
 % y -       the output signal with a decreased sampling rate
 
 y = x;
-if (filter_flag && (F>2))      % Filter here if R>M
-    F = F-2;
-    y = CIC_filter(y, M, F);   % Filter the signal F-2 times only
-    y = y/(M^(F));             % Adjust signal amplitude
+if (filter_flag && (F>2))           % Filter here if R>M
+    F = F-2;                        % Filter signal F-2 times only
+    y = dec_filter_amp(y, M, F);    % Filter and adjust amplitude
 end
 y = downsampler(y, M);      
+
+end
+
+
+function [ y ] = dec_filter_amp( x, M, F)
+% This function takes in a signal x, and filters it F times using 
+% decimation rate M to determine the coefficients of the CIC filter. It
+% also scales the amplitude of the output signal based on the amount of
+% filtering.
+%
+% Input:
+%
+% x -       the input signal
+% M -       the decimation rate
+% F -       the number of filterings
+%
+% Output:
+%
+% y -       the filtered and scaled output signal
+
+y = CIC_filter(x, M, F);   % Filter the signal F times
+y = y/(M^(F));             % Adjust signal amplitude
 
 end
 
