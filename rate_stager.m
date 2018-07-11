@@ -37,8 +37,8 @@ elseif length(pf) == f
     sf = pf;    
 else % when length(pf) < f
     sf = pf;
-    warning(['Requested %1.f factors but, the number %1.f has %1.f factors ' ...
-        'at most. Using %1.f factors.\n'], f, R, length(pf), length(pf)); 
+    warning(['Requested %1.f factor(s) but, the number %1.f has %1.f factor(s) ' ...
+        'at most. Using %1.f factor(s).\n'], f, R, length(pf), length(pf)); 
 end
 
 Nout = length(sf);
